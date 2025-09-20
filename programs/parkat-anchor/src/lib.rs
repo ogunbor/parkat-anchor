@@ -1,4 +1,7 @@
 use anchor_lang::prelude::*;
+mod state;
+mod instructions;
+use instructions::*;
 
 declare_id!("CJbYiHnNrzYe7imm54hYA9HiJS1Q8BJs5okxFJbhuUx3");
 
@@ -6,11 +9,7 @@ declare_id!("CJbYiHnNrzYe7imm54hYA9HiJS1Q8BJs5okxFJbhuUx3");
 pub mod parkat_anchor {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Greetings from: {:?}", ctx.program_id);
-        Ok(())
+    pub fn init_user(ctx: Context<InitUser>) -> Result<()> {
+        ctx.accounts.init_user(&ctx.bumps)
     }
 }
-
-#[derive(Accounts)]
-pub struct Initialize {}
