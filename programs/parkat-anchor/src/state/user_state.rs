@@ -4,7 +4,8 @@ use anchor_lang::prelude::*;
 #[derive(InitSpace)]
 pub struct User {
     pub user: Pubkey,
-    pub latest_update: i64,
+    pub time_stamp: i64,
     pub is_parked: bool,
+    pub amount: u64
     pub bump: u8,
 }

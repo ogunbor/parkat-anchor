@@ -23,8 +23,9 @@ impl<'info> InitUser<'info> {
         let clock = Clock::get()?;
 
         car.user = self.user.key();
-        car.latest_update = clock.unix_timestamp;
+        car.time_stamp = clock.unix_timestamp;
         car.is_parked = false;
+        car.amount = 0;
         car.bump = bumps.car;
 
         Ok(())
