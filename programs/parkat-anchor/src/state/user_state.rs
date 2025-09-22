@@ -7,5 +7,6 @@ pub struct User {
     pub time_stamp: i64,
     pub is_parked: bool,
     pub amount: u64
-    pub bump: u8,
+    pub vault_bump: u8,
+    pub state_bump: u8,
 }

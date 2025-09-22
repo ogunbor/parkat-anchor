@@ -14,19 +14,24 @@ pub struct InitUser<'info> {
         bump,
     )]
     pub car: Account<'info, User>,
+    #[account(
+        seeds = [b"vault", car.key().as_ref()],
+        bump,
+    )]
+    pub vault: SystemAccount<'info>
     pub system_program: Program<'info, System>,
 }
 
 impl<'info> InitUser<'info> {
     pub fn init_user(&mut self, bumps: &InitUserBumps) -> Result<()> {
         let car = &mut self.car;
-        let clock = Clock::get()?;
 
         car.user = self.user.key();
-        car.time_stamp = clock.unix_timestamp;
+        car.time_stamp = Clock::get()?.unix_timestamp;
         car.is_parked = false;
         car.amount = 0;
-        car.bump = bumps.car;
+        car.vault_bump = bumps.vault
+        car.state_bump = bumps.car;
 
         Ok(())
     }
