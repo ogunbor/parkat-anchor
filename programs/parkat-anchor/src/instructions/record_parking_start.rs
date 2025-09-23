@@ -16,7 +16,7 @@ pub struct RecordParkingStart<'info> {
 }
 
 impl<'info> RecordParkingStart<'info> {
-    pub fn record_parking_start(&mut self) -> Result<()> {
+    pub fn record_parking_start(&mut self, is_parked: bool) -> Result<()> {
         let car = &mut self.car;
 
         // Update fields
