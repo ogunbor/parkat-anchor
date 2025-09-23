@@ -18,7 +18,7 @@ pub struct InitUser<'info> {
         seeds = [b"vault", car.key().as_ref()],
         bump,
     )]
-    pub vault: SystemAccount<'info>
+    pub vault: SystemAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -30,7 +30,7 @@ impl<'info> InitUser<'info> {
         car.time_stamp = Clock::get()?.unix_timestamp;
         car.is_parked = false;
         car.amount = 0;
-        car.vault_bump = bumps.vault
+        car.vault_bump = bumps.vault;
         car.state_bump = bumps.car;
 
         Ok(())
