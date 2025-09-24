@@ -10,7 +10,7 @@ pub mod parkat_anchor {
     use super::*;
 
     pub fn init_user(ctx: Context<InitUser>) -> Result<()> {
-        ctx.accounts.init_user(&ctx.bumps)
+        ctx.accounts.init_user(&ctx.bumps, number_plate)
     }
 
     pub fn deposit_by_user(ctx: Context<Deposit>, amount: u64) -> Result<()> {

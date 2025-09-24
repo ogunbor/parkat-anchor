@@ -23,7 +23,7 @@ pub struct InitUser<'info> {
 }
 
 impl<'info> InitUser<'info> {
-    pub fn init_user(&mut self, bumps: &InitUserBumps) -> Result<()> {
+    pub fn init_user(&mut self, bumps: &InitUserBumps, number_plate: String) -> Result<()> {
         let car = &mut self.car;
 
         car.user = self.user.key();
@@ -32,6 +32,13 @@ impl<'info> InitUser<'info> {
         car.amount = 0;
         car.vault_bump = bumps.vault;
         car.state_bump = bumps.car;
+
+        // number plate of car (string) conversion to bytes
+        let mut plate_bytes = [0u8; 16];
+        let input_bytes = number_plate.as_bytes();
+        let len = input_bytes.len().min(16);
+        plate_bytes[..len].copy_from_slice(&input_bytes[..len]);
+        car.number_plate = plate_bytes;
 
         Ok(())
     }

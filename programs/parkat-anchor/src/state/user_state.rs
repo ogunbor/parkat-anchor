@@ -9,4 +9,5 @@ pub struct User {
     pub amount: u64,
     pub vault_bump: u8,
     pub state_bump: u8,
+    pub number_plate: [u8; 16],
 }
