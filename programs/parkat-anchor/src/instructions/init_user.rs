@@ -24,6 +24,12 @@ pub struct InitUser<'info> {
 
 impl<'info> InitUser<'info> {
     pub fn init_user(&mut self, bumps: &InitUserBumps, number_plate: String) -> Result<()> {
+
+        // Validate number plate input
+        if number_plate.is_empty() {
+            return Err(error!(Error::EmptyNumberPlate));
+        }
+
         let car = &mut self.car;
 
         car.user = self.user.key();
@@ -42,4 +48,10 @@ impl<'info> InitUser<'info> {
 
         Ok(())
     }
+}
+
+#[error_code]
+pub enum Error {
+    #[msg("Number plate cannot be empty")]
+    EmptyNumberPlate,
 }
