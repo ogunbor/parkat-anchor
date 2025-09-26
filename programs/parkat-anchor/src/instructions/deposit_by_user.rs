@@ -29,27 +29,50 @@ pub struct Deposit<'info> {
 
 impl<'info> Deposit<'info> {
     pub fn deposit(&mut self, amount: u64) -> Result<()> {
-        let cpi_program = self.system_program.to_account_info();
+       
+        if amount == 0 {
+            return Err(error!(Error::InvalidDepositAmount));
+        }
 
+        // Check for overflow before performing operations
+        let new_amount = self.car.amount
+            .checked_add(amount)
+            .ok_or(error!(Error::ArithmeticOverflow))?;
+
+        // Perform the transfer
+        let cpi_program = self.system_program.to_account_info();
         let cpi_accounts = Transfer {
             from: self.user.to_account_info(),
             to: self.vault.to_account_info(),
         };
-
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
 
         transfer(cpi_ctx, amount)?;
 
-        // update balance field
-        self.car.amount = self.car.amount.checked_add(amount).unwrap();
+        // Update balance field after successful transfer
+        self.car.amount = new_amount;
 
-        // assert balance
-        assert_eq!(
-            self.vault.lamports(),
-            self.car.amount,
-            "Vault lamports do not match recorded deposits"
-        );
+        // Verify balance consistency with proper error handling
+        let vault_balance = self.vault.lamports();
+        if vault_balance != self.car.amount {
+            return Err(error!(Error::BalanceMismatch));
+        }
 
         Ok(())
     }
+}
+
+#[error_code]
+pub enum Error {
+    #[msg("Deposit amount must be greater than zero")]
+    InvalidDepositAmount,
+
+    #[msg("Deposit amount is too large")]
+    DepositTooLarge,
+
+    #[msg("Arithmetic overflow occurred")]
+    ArithmeticOverflow,
+
+    #[msg("Vault balance does not match recorded amount")]
+    BalanceMismatch,
 }

@@ -13,7 +13,7 @@ pub mod parkat_anchor {
         ctx.accounts.init_user(&ctx.bumps, number_plate)
     }
 
-    pub fn deposit_by_user(ctx: Context<Deposit>, amount: u64) -> Result<()> {
+    pub fn deposit(ctx: Context<Deposit>, amount: u64) -> Result<()> {
         ctx.accounts.deposit(amount)
     }
 
