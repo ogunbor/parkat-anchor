@@ -1,7 +1,9 @@
-use anchor_lang::prelude::*;
-use anchor_lang::system_program::{transfer, Transfer};
+use anchor_lang::{
+    prelude::*,
+    system_program::{transfer, Transfer},
+};
 
-use crate::state::User;
+use crate::state::{User, Tenant};
 
 #[derive(Accounts)]
 pub struct ProcessExit<'info> {
@@ -10,19 +12,29 @@ pub struct ProcessExit<'info> {
 
     #[account(
         mut,
-        seeds = [b"vault", car.key().as_ref()],
-        bump = car.vault_bump,
+        seeds = [b"vault", tenant.key().as_ref(), user.key().as_ref()],
+        bump = user_account.vault_bump,
     )]
     pub vault: SystemAccount<'info>,
 
     #[account(
         mut,
-        seeds = [b"user", user.key().as_ref()],
-        bump = car.state_bump,
+        seeds = [b"user", tenant.key().as_ref(), user.key().as_ref()],
+        bump = user_account.state_bump,
     )]
-    pub car: Account<'info, User>,
+    pub user_account: Account<'info, User>,
 
-    /// CHECK: Admin's wallet is used only for transfer purposes and does not require validation.
+    #[account(
+        mut,
+        seeds = [b"tenant", tenant_admin.key().as_ref()],
+        bump = tenant.bump,
+    )]
+    pub tenant: Account<'info, Tenant>,
+
+    /// CHECK: Tenant admin - must match the admin used during tenant initialization
+    pub tenant_admin: UncheckedAccount<'info>,
+
+    /// CHECK: Admin wallet only used for transfer
     pub admin_wallet: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
@@ -30,11 +42,11 @@ pub struct ProcessExit<'info> {
 
 impl<'info> ProcessExit<'info> {
     pub fn process_exit(&mut self) -> Result<()> {
-        let car = &mut self.car;
+        let user_account = &mut self.user_account;
 
-        // Check if user is currently parked
-        if !car.is_parked {
-            return Err(error!(Error::NotCurrentlyParked));
+        // Ensure the user is parked
+        if !user_account.is_parked {
+            return Err(error!(ProcessExitError::NotCurrentlyParked));
         }
 
         // Get current blockchain time
@@ -42,56 +54,59 @@ impl<'info> ProcessExit<'info> {
 
         // Calculate duration parked
         let duration = current_time
-            .checked_sub(car.time_stamp)
-            .ok_or_else(|| error!(Error::InvalidParkingDuration))?;
+            .checked_sub(user_account.time_stamp)
+            .ok_or_else(|| error!(ProcessExitError::InvalidParkingDuration))?;
 
-        // Convert to u64
         let duration_u64 = u64::try_from(duration)
-            .map_err(|_| error!(Error::InvalidParkingDuration))?;
+            .map_err(|_| error!(ProcessExitError::InvalidParkingDuration))?;
 
+        // Calculate amount to transfer (parking fee)
         let amount = duration_u64 / 1000;
 
-        // Check if we need to transfer (only if amount > 0)
+        // Only transfer if amount > 0
         if amount > 0 {
-            // Check vault balance
+            // Ensure vault has enough balance
             let vault_balance = self.vault.to_account_info().lamports();
             if amount > vault_balance {
-                return Err(error!(Error::InsufficientVaultBalance));
+                return Err(error!(ProcessExitError::InsufficientVaultBalance));
             }
 
-            // Perform CPI transfer
+            // Prepare signer seeds for vault PDA
+            let tenant_key = self.tenant.key();
+            let user_key = self.user.key();
+
+            let seeds_slice: &[&[u8]] = &[
+                b"vault",
+                tenant_key.as_ref(),
+                user_key.as_ref(),
+                &[user_account.vault_bump],
+            ];
+            let signer_seeds: &[&[&[u8]]] = &[seeds_slice];
+
+            // Perform CPI transfer (parking fee to admin)
             let cpi_program = self.system_program.to_account_info();
             let cpi_accounts = Transfer {
                 from: self.vault.to_account_info(),
                 to: self.admin_wallet.to_account_info(),
             };
-            let seeds = &[
-                b"vault",
-                car.to_account_info().key.as_ref(),
-                &[car.vault_bump],
-            ];
-            let signer_seeds = &[&seeds[..]];
             let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer_seeds);
 
             transfer(cpi_ctx, amount)?;
 
-            // Update car amount
-            car.amount = car
-                .amount
-                .checked_sub(amount)
-                .ok_or_else(|| error!(Error::AmountCalculationError))?;
+            // Update user account amount to reflect current vault balance after transfer
+            user_account.amount = self.vault.lamports();
         }
 
         // Update parking state
-        car.time_stamp = current_time;
-        car.is_parked = false;
+        user_account.time_stamp = current_time;
+        user_account.is_parked = false;
 
         Ok(())
     }
 }
 
 #[error_code]
-pub enum Error {
+pub enum ProcessExitError {
     #[msg("Time calculation failed")]
     TimeCalculationError,
 

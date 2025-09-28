@@ -1,13 +1,19 @@
 use anchor_lang::prelude::*;
+
 mod instructions;
 mod state;
 use instructions::*;
 
 declare_id!("CJbYiHnNrzYe7imm54hYA9HiJS1Q8BJs5okxFJbhuUx3");
 
+
 #[program]
 pub mod parkat_anchor {
     use super::*;
+
+    pub fn init_tenant(ctx: Context<InitTenant>, tenant_name: String) -> Result<()> {
+        ctx.accounts.init_tenant(&ctx.bumps, tenant_name)
+    }
 
     pub fn init_user(ctx: Context<InitUser>, number_plate: String) -> Result<()> {
         ctx.accounts.init_user(&ctx.bumps, number_plate)
@@ -24,4 +30,5 @@ pub mod parkat_anchor {
     pub fn process_exit(ctx: Context<ProcessExit>) -> Result<()> {
         ctx.accounts.process_exit()
     }
+   
 }
