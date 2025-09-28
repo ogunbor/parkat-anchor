@@ -3,7 +3,7 @@ use anchor_lang::{
     system_program::{transfer, Transfer},
 };
 
-use crate::state::User;
+use crate::state::{Tenant, User};
 
 #[derive(Accounts)]
 pub struct Deposit<'info> {
@@ -12,7 +12,17 @@ pub struct Deposit<'info> {
 
     #[account(
         mut,
-        seeds = [b"vault", car.key().as_ref()],
+        seeds = [b"tenant", tenant_admin.key().as_ref()],
+        bump = tenant.bump,
+    )]
+    pub tenant: Account<'info, Tenant>,
+
+    /// CHECK: Tenant admin - must match the admin used during tenant initialization
+    pub tenant_admin: UncheckedAccount<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", tenant.key().as_ref(), user.key().as_ref()],
         bump = car.vault_bump,
     )]
     pub vault: SystemAccount<'info>,
@@ -29,34 +39,22 @@ pub struct Deposit<'info> {
 
 impl<'info> Deposit<'info> {
     pub fn deposit(&mut self, amount: u64) -> Result<()> {
-       
         if amount == 0 {
             return Err(error!(Error::InvalidDepositAmount));
         }
 
-        // Check for overflow before performing operations
-        let new_amount = self.car.amount
-            .checked_add(amount)
-            .ok_or(error!(Error::ArithmeticOverflow))?;
-
-        // Perform the transfer
+        // Perform transfer first
         let cpi_program = self.system_program.to_account_info();
         let cpi_accounts = Transfer {
             from: self.user.to_account_info(),
             to: self.vault.to_account_info(),
         };
         let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
-
+        
         transfer(cpi_ctx, amount)?;
 
-        // Update balance field after successful transfer
-        self.car.amount = new_amount;
-
-        // Verify balance consistency with proper error handling
-        let vault_balance = self.vault.lamports();
-        if vault_balance != self.car.amount {
-            return Err(error!(Error::BalanceMismatch));
-        }
+        // Update tracked amount to reflect current vault balance
+        self.car.amount = self.vault.lamports();
 
         Ok(())
     }
@@ -66,13 +64,4 @@ impl<'info> Deposit<'info> {
 pub enum Error {
     #[msg("Deposit amount must be greater than zero")]
     InvalidDepositAmount,
-
-    #[msg("Deposit amount is too large")]
-    DepositTooLarge,
-
-    #[msg("Arithmetic overflow occurred")]
-    ArithmeticOverflow,
-
-    #[msg("Vault balance does not match recorded amount")]
-    BalanceMismatch,
 }
