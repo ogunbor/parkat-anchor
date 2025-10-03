@@ -18,19 +18,15 @@ fn test_init_tenant() {
         five8_const::decode_32_const("CJbYiHnNrzYe7imm54hYA9HiJS1Q8BJs5okxFJbhuUx3")
     );
 
-    // Initialize Mollusk
     let mollusk = Mollusk::new(&program_id, "../../target/deploy/parkat_anchor");
 
-    // Keypair for admin
     let admin = Keypair::new();
 
-    // Derive tenant state PDA
     let (tenant_pda, _tenant_bump) = Pubkey::find_program_address(
         &[b"tenant", admin.pubkey().as_ref()],
         &program_id
     );
 
-    // System program account
     let (system_program, system_account) = program::keyed_account_for_system_program();
 
     // Build the accounts
@@ -45,9 +41,8 @@ fn test_init_tenant() {
         AccountMeta::new_readonly(system_program, false)
     ];
    
-    // Get the anchor discriminator
     let data = parkat_anchor::instruction::InitTenant { 
-        tenant_name: String::from("1") 
+        tenant_name: String::from("Jerry") 
     }.data();
 
     // Create the instruction
