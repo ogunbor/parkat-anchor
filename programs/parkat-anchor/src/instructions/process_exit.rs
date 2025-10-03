@@ -61,7 +61,12 @@ impl<'info> ProcessExit<'info> {
             .map_err(|_| error!(ProcessExitError::InvalidParkingDuration))?;
 
         // Calculate amount to transfer (parking fee)
-        let amount = duration_u64 / 1000;
+        // Fee: 100 lamports per minute
+        let rate_per_minute: u64 = 100;
+        let duration_minutes = duration_u64 / 60;
+        let amount = duration_minutes
+            .checked_mul(rate_per_minute)
+            .ok_or_else(|| error!(ProcessExitError::AmountCalculationError))?;
 
         // Only transfer if amount > 0
         if amount > 0 {
@@ -98,7 +103,7 @@ impl<'info> ProcessExit<'info> {
         }
 
         // Update parking state
-        user_account.time_stamp = current_time;
+        user_account.time_stamp = Clock::get()?.unix_timestamp;
         user_account.is_parked = false;
 
         Ok(())

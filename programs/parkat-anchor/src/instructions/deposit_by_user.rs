@@ -29,7 +29,7 @@ pub struct Deposit<'info> {
 
     #[account(
         mut,
-        seeds = [b"user", user.key().as_ref()],
+        seeds = [b"user", tenant.key().as_ref(), user.key().as_ref()],
         bump = car.state_bump,
     )]
     pub car: Account<'info, User>,
