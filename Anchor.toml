@@ -8,12 +8,15 @@ skip-lint = false
 [programs.localnet]
 parkat_anchor = "CJbYiHnNrzYe7imm54hYA9HiJS1Q8BJs5okxFJbhuUx3"
 
+[programs.devnet]
+parkat_anchor = "FDKqFqZ8MnAfwVCGAR8FJfbSjHyfqs14Vx9c1hBZSjGU"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
-wallet = "~/.config/solana/id.json"
+cluster = "devnet"
+wallet = "~/.config/solana/devnet.json"
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
